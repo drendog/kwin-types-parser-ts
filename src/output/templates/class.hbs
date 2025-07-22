@@ -1,0 +1,43 @@
+{{#if config.generateComments}}{{#if description}}  /**
+   * {{description}}
+   */
+{{/if}}{{/if}}
+{{#unless skipEnums}}
+{{#each enums}}
+{{> enum this config=../config}}
+
+{{/each}}
+{{/unless}}
+  {{#if isAbstract}}abstract {{/if}}class {{name}}{{#if inheritance}} extends {{inheritance.[0]}}{{/if}} {
+{{#if properties.length}}
+    /** Properties */
+{{#each properties}}
+{{> property this config=../config}}
+{{/each}}
+
+{{/if}}
+{{#unless isAbstract}}
+    constructor();
+
+{{/unless}}
+{{#if methods.length}}
+    /** Qt Decorated Methods */
+{{#each methods}}
+{{> method this config=../config}}
+{{/each}}
+
+{{/if}}
+{{#if slots.length}}
+    /** Slots */
+{{#each slots}}
+{{> method this config=../config}}
+{{/each}}
+
+{{/if}}
+{{#if signals.length}}
+    /** Signals */
+{{#each signals}}
+{{> signal this config=../config}}
+{{/each}}
+{{/if}}
+  }

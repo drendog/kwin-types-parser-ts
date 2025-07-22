@@ -1,0 +1,22 @@
+/**
+ * Generated TypeScript definitions for KWin
+ * Auto-generated from Doxygen documentation
+ * Generated on: {{generatedDate}}
+ * Classes parsed: {{classCount}}
+ */
+
+// Signal type helper for KWin signals
+interface Signal<T extends (...args: any[]) => void> {
+  connect(callback: T): void;
+  disconnect(callback: T): void;
+}
+
+{{> qt-types}}
+
+{{> std-types}}
+
+{{#each namespaces}}
+{{> namespace this}}
+{{/each}}
+
+{{> globals }}

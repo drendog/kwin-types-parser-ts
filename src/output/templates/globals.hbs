@@ -1,0 +1,105 @@
+// Global properties and methods available in KWin scripts.
+
+/**
+ * Global property to all configuration values of KWin core.
+ */
+declare const options: KWin.Options;
+
+/**
+ * Global property to the core wrapper of KWin.
+ */
+declare const workspace: KWin.WorkspaceWrapper;
+
+/**
+ * Prints all provided values to kDebug and as a D-Bus signal.
+ */
+declare function print(...values: QVariant[]): void;
+
+/**
+ * Reads the config value for key in the Script's configuration with the optional default value.
+ * If not providing a default value and no value stored in the configuration an undefined value is returned.
+ */
+declare function readConfig(key: string, defaultValue?: QVariant): QVariant;
+
+/**
+ * Registers the callback for the screen edge. When the mouse gets pushed against the given edge the callback will be invoked.
+ */
+declare function registerScreenEdge(
+  border: KWin.ElectricBorder,
+  callback: QScriptValue
+): boolean;
+
+/**
+ * Unregisters the callback for the screen edge.
+ */
+declare function unregisterScreenEdge(border: KWin.ElectricBorder): boolean;
+
+/**
+ * Registers keySequence as a global shortcut.
+ * When the shortcut is invoked the callback will be called. Title and text are used to name the shortcut and make it available to the global shortcut configuration module.
+ */
+declare function registerShortcut(
+  title: string,
+  text: string,
+  keySequence: string,
+  callback: QScriptValue
+): boolean;
+
+/**
+ * Aborts the execution of the script if value does not evaluate to true.
+ * If message is provided an error is thrown with the given message, if not provided an error with default message is thrown.
+ */
+declare function assert(value: boolean, message?: string): boolean;
+
+/**
+ * Aborts the execution of the script if value does not evaluate to true.
+ * If message is provided an error is thrown with the given message, if not provided an error with default message is thrown.
+ */
+declare function assertTrue(value: boolean, message?: string): boolean;
+
+/**
+ * Aborts the execution of the script if value does not evaluate to false.
+ * If message is provided an error is thrown with the given message, if not provided an error with default message is thrown.
+ */
+declare function assertFalse(value: boolean, message?: string): boolean;
+
+/**
+ * Aborts the execution of the script if the actual value is not equal to the expected value.
+ * If message is provided an error is thrown with the given message, if not provided an error with default message is thrown.
+ */
+declare function assertEquals(
+  expected: QVariant,
+  actual: QVariant,
+  message?: string
+): boolean;
+
+/**
+ * Aborts the execution of the script if value is not null.
+ * If message is provided an error is thrown with the given message, if not provided an error with default message is thrown.
+ */
+declare function assertNull(value: QVariant, message?: string): boolean;
+
+/**
+ * Aborts the execution of the script if value is null.
+ * If message is provided an error is thrown with the given message, if not provided an error with default message is thrown.
+ */
+declare function assertNotNull(value: QVariant, message?: string): boolean;
+
+/**
+ * Call a D-Bus method at (service, path, interface and method). A variable number of arguments can be added.
+ * The D-Bus call is always performed in an async way invoking the callback provided as the last (optional) argument.
+ * The reply values of the D-Bus method call are passed to the callback.
+ */
+declare function callDBus(
+  service: string,
+  path: string,
+  interfaceName: string,
+  method: string,
+  ...args: (QVariant | QScriptValue)[]
+): void;
+
+/**
+ * Registers the passed in callback to be invoked whenever the User actions menu (Alt+F3 or right click on window decoration) is about to be shown.
+ * The callback is invoked with a reference to the Client for which the menu is shown.
+ */
+declare function registerUserActionsMenu(callback: QScriptValue): void;

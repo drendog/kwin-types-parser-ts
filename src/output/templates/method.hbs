@@ -1,0 +1,8 @@
+{{#if description}}
+    /**
+     * {{description}}
+     * {{#if decorators}}{{#if (qtDecorators decorators)}}@{{join (qtDecorators decorators) ", @"}} {{/if}}{{/if}}
+     */
+{{else}}{{#if decorators}}{{#if (qtDecorators decorators)}}    /** @{{join (qtDecorators decorators) ", @"}}  */ {{/if}}{{/if}}
+{{/if}}
+    {{modifiers this}}{{name}}({{#each parameters}}{{name}}{{#if isOptional}}?{{/if}}: {{type}}{{#unless @last}}, {{/unless}}{{/each}}): {{returnType}};

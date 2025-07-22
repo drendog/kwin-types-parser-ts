@@ -1,0 +1,5 @@
+{{#if description}}
+    /** {{description}} */
+{{else}}{{#if decorators}}{{#if decorators.length}}    /** Qt Property: {{join decorators ", "}} */
+{{/if}}{{/if}}{{/if}}    {{modifiers this}}{{name}}: {{type}};
+

@@ -1,0 +1,23 @@
+{{#if config.generateComments}}/** {{name}} namespace */{{/if}}
+declare namespace {{name}} {
+{{#if globalEnums}}
+  // Global enums
+{{#each globalEnums}}
+{{> enum this indent="  "}}
+
+{{/each}}
+{{/if}}
+{{#each classEnumNamespaces}}
+  namespace {{className}} {
+  {{#each enums}}
+  {{> enum this indent="  "}}
+
+{{/each}}
+  }
+
+{{/each}}
+{{#each classes}}
+{{> class this indent="  " skipEnums=../skipEnums}}
+
+{{/each}}
+}
