@@ -1,11 +1,13 @@
-
 import { groupBy } from "lodash";
 import { type Document, DOMParser } from "deno_dom";
 import type {
   TypeDependencyTracker,
   TypeDependency,
 } from "../type-system/type-dependency-tracker.ts";
-import type { DocumentParsingService, ParsedDocument } from "./document-parser.ts";
+import type {
+  DocumentParsingService,
+  ParsedDocument,
+} from "./document-parser.ts";
 import type { ParsingRepository } from "../core/pipeline.ts";
 import type { ParsedClass } from "../core/interfaces.ts";
 import { Logger } from "../utils/logtape-logger.ts";
@@ -24,7 +26,7 @@ export class TypeDependencyService {
   private maxDepthReached = 0;
   private resolvedTypesCount = 0;
   private unresolvedTypesCount = 0;
-  private currentRepository?: ParsingRepository; 
+  private currentRepository?: ParsingRepository;
   private readonly sourceDocuments = new Map<string, Document>(); // Cache docs for link resolution
 
   constructor(
@@ -152,32 +154,6 @@ export class TypeDependencyService {
               }
             );
           });
-        }
-
-        // TileManager debugging - why aren't TileModel/CustomTile getting resolved?
-        if (cls.fullName === "KWin::TileManager") {
-          Logger.info(
-            `DEBUG TileManager: Found ${dependencies.length} dependencies`
-          );
-          const tileModelDeps = dependencies.filter((dep) =>
-            dep.fullName.includes("TileModel")
-          );
-          const customTileDeps = dependencies.filter((dep) =>
-            dep.fullName.includes("CustomTile")
-          );
-          Logger.info(
-            `DEBUG TileManager: TileModel refs: ${tileModelDeps.length}, CustomTile refs: ${customTileDeps.length}`
-          );
-          tileModelDeps.forEach((dep) =>
-            Logger.info(
-              `  TileModel: ${dep.fullName} (${dep.usageType}) href: ${dep.linkedHref}`
-            )
-          );
-          customTileDeps.forEach((dep) =>
-            Logger.info(
-              `  CustomTile: ${dep.fullName} (${dep.usageType}) href: ${dep.linkedHref}`
-            )
-          );
         }
 
         return dependencies;
