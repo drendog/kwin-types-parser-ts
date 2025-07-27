@@ -107,6 +107,7 @@
     }
   },
   "redirects": {
+    "https://esm.sh/@types/lodash@~4.17.14/index.d.ts": "https://esm.sh/@types/lodash@4.17.20/index.d.ts",
     "https://esm.sh/source-map@^0.6.1?target=denonext": "https://esm.sh/source-map@0.6.1?target=denonext"
   },
   "remote": {
