@@ -1,8 +1,7 @@
-
 import { validateTypeMappingConfig } from "../validation/schemas.ts";
 import { cppTypeAnalyzer, type ParsedType } from "./type-parser.ts";
 import { Logger } from "../utils/logtape-logger.ts";
-import { cleanCppTypeString, normalizeTypeName } from "./type-utils.ts";
+import { TypeUtils } from "./type-utils.ts";
 
 export interface TypeDefinition {
   name: string;
@@ -288,7 +287,7 @@ export class TypeConverter {
     }
 
     // Fallback to basic cleanup if parsing fails
-    return cleanCppTypeString(cppType);
+    return TypeUtils.cleanCppTypeString(cppType);
   }
 
   private handleTemplateTypes(type: string): string {
@@ -381,7 +380,7 @@ export class TypeConverter {
 
   normalizeTypeName(typeName: string): string {
     const normalized = cppTypeAnalyzer.normalizeType(typeName);
-    return normalized || normalizeTypeName(typeName);
+    return normalized || TypeUtils.normalizeTypeName(typeName);
   }
 
   getStats(): { cacheSize: number; registeredTypes: number } {

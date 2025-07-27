@@ -2,13 +2,7 @@ import type { Document, Element } from "deno_dom";
 import type { ParsedClass } from "../core/interfaces.ts";
 import { TypeRegistry } from "./type-system.ts";
 import { defaultTypeMappings } from "./default-type-mappings.ts";
-import {
-  cleanCppTypeString,
-  cleanTypeForLookup,
-  extractTypeName,
-  normalizeTypeName,
-  isObjectLiteral,
-} from "./type-utils.ts";
+import { TypeUtils } from "./type-utils.ts";
 
 export interface TypeDependency {
   typeName: string;
@@ -80,7 +74,7 @@ export class TypeDependencyTracker {
     if (classInfo.inheritance) {
       for (const parent of classInfo.inheritance) {
         dependencies.push({
-          typeName: extractTypeName(parent),
+          typeName: TypeUtils.extractTypeName(parent),
           fullName: parent,
           sourceLocation,
           usageType: "inheritance",
@@ -190,11 +184,11 @@ export class TypeDependencyTracker {
 
       if (href && text) {
         // Extract the full type name from the text content
-        const fullTypeName = normalizeTypeName(text);
+        const fullTypeName = TypeUtils.normalizeTypeName(text);
         links.set(fullTypeName, href);
 
         // Also store shortened versions without namespace
-        const shortName = extractTypeName(text);
+        const shortName = TypeUtils.extractTypeName(text);
         if (shortName && shortName !== text) {
           links.set(shortName, href);
         }
@@ -237,10 +231,10 @@ export class TypeDependencyTracker {
   }
 
   private parseTypeReference(typeString: string): TypeDependency | null {
-    const cleanType = cleanCppTypeString(typeString);
+    const cleanType = TypeUtils.cleanCppTypeString(typeString);
 
     // Skip built-in types and object literals
-    if (this.isBuiltinType(cleanType) || isObjectLiteral(cleanType)) {
+    if (this.isBuiltinType(cleanType) || TypeUtils.isObjectLiteral(cleanType)) {
       return null;
     }
 
@@ -266,7 +260,6 @@ export class TypeDependencyTracker {
       usageType: "property", // Will be overridden by caller
     };
   }
-
 
   private enrichDependenciesWithLinks(
     dependencies: TypeDependency[],
@@ -302,7 +295,7 @@ export class TypeDependencyTracker {
   }
 
   private isBuiltinType(typeName: string): boolean {
-    const cleanType = cleanTypeForLookup(typeName);
+    const cleanType = TypeUtils.cleanTypeForLookup(typeName);
     return this.typeRegistry.hasType(cleanType);
   }
 }

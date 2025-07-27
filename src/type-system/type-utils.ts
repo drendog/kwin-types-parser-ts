@@ -1,24 +1,45 @@
+export class TypeUtils {
+  static extractTypeName(fullTypeName: string): string {
+    return fullTypeName.split("::").pop() || fullTypeName;
+  }
 
-export function cleanCppTypeString(cppType: string): string {
-  return cppType
-    .replace(/\bconst\b/g, "")
-    .replace(/[&*]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+  static extractNamespace(fullTypeName: string): string {
+    const parts = fullTypeName.split("::");
+    return parts.length > 1 ? parts.slice(0, -1).join("::") : "";
+  }
 
-export function cleanTypeForLookup(typeName: string): string {
-  return typeName.replace(/[<>*&[\]]/g, "").trim();
-}
+  static normalizeTypeName(typeName: string): string {
+    return typeName.replace(/\s+/g, " ").trim();
+  }
 
-export function extractTypeName(fullTypeName: string): string {
-  return fullTypeName.split("::").pop() || fullTypeName;
-}
+  static isFullyQualified(typeName: string): boolean {
+    return typeName.includes("::");
+  }
 
-export function normalizeTypeName(typeName: string): string {
-  return typeName.replace(/\s+/g, " ").trim();
-}
+  static buildFullTypeName(namespace: string, typeName: string): string {
+    return namespace ? `${namespace}::${typeName}` : typeName;
+  }
 
-export function isObjectLiteral(typeName: string): boolean {
-  return typeName.startsWith("{") && typeName.endsWith("}");
+  static sanitizeTypeName(typeName: string): string {
+    return typeName
+      .replace(/[<>]/g, "_")
+      .replace(/[^a-zA-Z0-9_:]/g, "")
+      .replace(/::/g, "_");
+  }
+
+  static cleanCppTypeString(cppType: string): string {
+    return cppType
+      .replace(/\bconst\b/g, "")
+      .replace(/[&*]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  static cleanTypeForLookup(typeName: string): string {
+    return typeName.replace(/[<>*&[\]]/g, "").trim();
+  }
+
+  static isObjectLiteral(typeName: string): boolean {
+    return typeName.startsWith("{") && typeName.endsWith("}");
+  }
 }
