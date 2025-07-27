@@ -148,8 +148,8 @@ export function validateParseConfig(
     return ParseConfigSchema.parse(config);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors
-        .map((err: z.ZodIssue) => `${err.path.join(".")}: ${err.message}`)
+      const errorMessages = error.issues
+        .map((err) => `${err.path.join(".")}: ${err.message}`)
         .join(", ");
       throw new Error(`Invalid ParseConfig: ${errorMessages}`);
     }
@@ -164,8 +164,8 @@ export function validatePartialParseConfig(
     return PartialParseConfigSchema.parse(config);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors
-        .map((err: z.ZodIssue) => `${err.path.join(".")}: ${err.message}`)
+      const errorMessages = error.issues
+        .map((err) => `${err.path.join(".")}: ${err.message}`)
         .join(", ");
       throw new Error(`Invalid Partial ParseConfig: ${errorMessages}`);
     }
@@ -180,8 +180,8 @@ export function validateParsedClass(
     return ParsedClassSchema.parse(classData);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors
-        .map((err: z.ZodIssue) => `${err.path.join(".")}: ${err.message}`)
+      const errorMessages = error.issues
+        .map((err) => `${err.path.join(".")}: ${err.message}`)
         .join(", ");
       throw new Error(`Invalid ParsedClass: ${errorMessages}`);
     }
@@ -196,8 +196,8 @@ export function validateTypeMappingConfig(
     return TypeMappingConfigSchema.parse(config);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors
-        .map((err: z.ZodIssue) => `${err.path.join(".")}: ${err.message}`)
+      const errorMessages = error.issues
+        .map((err) => `${err.path.join(".")}: ${err.message}`)
         .join(", ");
       throw new Error(`Invalid TypeMappingConfig: ${errorMessages}`);
     }
@@ -212,8 +212,8 @@ export function validateParseStats(
     return ParseStatsSchema.parse(stats);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors
-        .map((err: z.ZodIssue) => `${err.path.join(".")}: ${err.message}`)
+      const errorMessages = error.issues
+        .map((err) => `${err.path.join(".")}: ${err.message}`)
         .join(", ");
       throw new Error(`Invalid ParseStats: ${errorMessages}`);
     }

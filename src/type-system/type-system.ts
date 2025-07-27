@@ -44,7 +44,7 @@ export interface EnumDefinition {
   values: EnumValueDefinition[];
   description?: string;
   namespace?: string;
-  isClass?: boolean; // C++11 enum class
+  isClass?: boolean;
 }
 
 export interface EnumValueDefinition {
@@ -61,18 +61,7 @@ export interface ParameterDefinition {
   isVariadic?: boolean;
 }
 
-export type TypeCategory =
-  | "primitive"
-  | "container"
-  | "qt-basic"
-  | "qt-gui"
-  | "qt-core"
-  | "kwin"
-  | "custom"
-  | "template"
-  | "enum"
-  | "class"
-  | "interface";
+export type TypeCategory = "primitive" | "qt-basic" | "custom";
 
 export interface TypeMappingConfig {
   mappings: TypeDefinition[];
@@ -82,7 +71,7 @@ export interface TypeMappingConfig {
 }
 
 export interface TemplateMapping {
-  pattern: string; // regex pattern
+  pattern: string;
   replacement: string;
   description?: string;
 }
@@ -100,7 +89,6 @@ export interface TypeConversionRule {
   priority: number;
 }
 
-// Registry for managing type mappings and lookups
 export class TypeRegistry {
   private readonly typeDefinitions = new Map<string, TypeDefinition>();
   private readonly aliasMap = new Map<string, string>();
@@ -108,6 +96,10 @@ export class TypeRegistry {
   private namespaceMappings: NamespaceMapping[] = [];
   private customRules: TypeConversionRule[] = [];
   private readonly cacheMap = new Map<string, string>();
+
+  private clearAllCaches(): void {
+    this.cacheMap.clear();
+  }
 
   constructor(config?: TypeMappingConfig) {
     if (config) {
@@ -121,7 +113,7 @@ export class TypeRegistry {
     this.templateMappings = [];
     this.namespaceMappings = [];
     this.customRules = [];
-    this.cacheMap.clear();
+    this.clearAllCaches();
 
     for (const typeDef of config.mappings) {
       this.registerType(typeDef);
@@ -145,8 +137,7 @@ export class TypeRegistry {
       }
     }
 
-    // Invalidate cache
-    this.cacheMap.clear();
+    this.clearAllCaches();
   }
 
   getType(name: string): TypeDefinition | undefined {
@@ -180,7 +171,7 @@ export class TypeRegistry {
   addCustomRule(rule: TypeConversionRule): void {
     this.customRules.push(rule);
     this.customRules.sort((a, b) => b.priority - a.priority);
-    this.cacheMap.clear();
+    this.clearAllCaches();
   }
 
   getAllTypeNames(): string[] {
@@ -207,29 +198,38 @@ export class TypeRegistry {
   }
 
   clearCache(): void {
-    this.cacheMap.clear();
+    this.clearAllCaches();
   }
 
   getCacheStats(): { size: number; hitRate: number } {
-    // Placeholder - need hit/miss tracking
     return {
       size: this.cacheMap.size,
-      hitRate: 0, // Placeholder
+      hitRate: 0,
     };
   }
 }
 
-// Advanced type converter with sophisticated conversion logic
 export class TypeConverter {
   private readonly registry: TypeRegistry;
   private readonly conversionCache = new Map<string, string>();
+
+  private createBaseTypePattern(pattern: string): string {
+    return pattern
+      .replace(/(^\^)|(\$$)/g, "")
+      .split("<")[0];
+  }
+
+  private checkTemplateMapping(parsed: ParsedType, mapping: TemplateMapping): boolean {
+    const baseTypePattern = this.createBaseTypePattern(mapping.pattern);
+    const regex = new RegExp(`^${baseTypePattern}$`);
+    return regex.test(parsed.baseType);
+  }
 
   constructor(registry: TypeRegistry) {
     this.registry = registry;
   }
 
   cppToTypeScript(cppType: string): string {
-    // Check cache first
     if (this.conversionCache.has(cppType)) {
       return this.conversionCache.get(cppType)!;
     }
@@ -240,42 +240,35 @@ export class TypeConverter {
   }
 
   private performConversion(cppType: string): string {
-    // Clean up the type string
     const cleanType = this.cleanTypeString(cppType);
 
-    // Apply custom rules first (highest priority)
     for (const rule of this.registry.getCustomRules()) {
       if (rule.condition(cleanType)) {
         return this.resolveTemplateTypes(rule.transform(cleanType));
       }
     }
 
-    // Handle templates
     const templateResult = this.handleTemplateTypes(cleanType);
     if (templateResult !== cleanType) {
       return this.resolveTemplateTypes(templateResult);
     }
 
-    // Handle namespace types
     const namespaceResult = this.handleNamespaceTypes(cleanType);
     if (namespaceResult !== cleanType) {
       return this.resolveTemplateTypes(namespaceResult);
     }
 
-    // Direct type lookup
     const typeDef = this.registry.getType(cleanType);
     if (typeDef) {
       return typeDef.tsType;
     }
 
-    // Fallback to normalized name
     const normalized = this.normalizeTypeName(cleanType);
     const normalizedTypeDef = this.registry.getType(normalized);
     if (normalizedTypeDef) {
       return normalizedTypeDef.tsType;
     }
 
-    // Last resort - return the clean type or 'any'
     return cleanType || "any";
   }
 
@@ -286,44 +279,27 @@ export class TypeConverter {
       return parsed.fullName;
     }
 
-    // Fallback to basic cleanup if parsing fails
     return TypeUtils.cleanCppTypeString(cppType);
   }
 
   private handleTemplateTypes(type: string): string {
     const parsed = cppTypeAnalyzer.parseType(type);
     if (!parsed?.templateArgs) {
-      return type; // Not a template type
+      return type;
     }
 
-    // Check if we have a template mapping for this base type
     for (const mapping of this.registry.getTemplateMappings()) {
-      // Build a pattern to match the base type
-      const baseTypePattern = mapping.pattern
-        .replace(/^\^|\$$/g, "")
-        .split("<")[0];
-      const regex = new RegExp(`^${baseTypePattern}$`);
-
-      if (regex.test(parsed.baseType)) {
-        let result = mapping.replacement;
-
-        // Replace template parameters with converted types
-        for (let i = 0; i < parsed.templateArgs.length; i++) {
-          const placeholder = `$${i + 1}`;
-          const replacement = this.cppToTypeScript(
-            parsed.templateArgs[i].fullName
-          );
-          result = result.replace(
-            new RegExp(`\\${placeholder}`, "g"),
-            replacement
-          );
-        }
+      if (this.checkTemplateMapping(parsed, mapping)) {
+        const result = parsed.templateArgs.reduce((acc, arg, index) => {
+          const placeholder = `$${index + 1}`;
+          const replacement = this.cppToTypeScript(arg.fullName);
+          return acc.replace(new RegExp(`\\${placeholder}`, "g"), replacement);
+        }, mapping.replacement);
 
         return result;
       }
     }
 
-    // If no mapping found, construct generic template
     const convertedArgs = parsed.templateArgs
       .map((arg) => this.cppToTypeScript(arg.fullName))
       .join(", ");
@@ -334,7 +310,7 @@ export class TypeConverter {
   private handleNamespaceTypes(type: string): string {
     const parsed = cppTypeAnalyzer.parseType(type);
     if (!parsed || !parsed.namespace) {
-      return type; // No namespace
+      return type;
     }
 
     for (const mapping of this.registry.getNamespaceMappings()) {
@@ -347,17 +323,14 @@ export class TypeConverter {
       }
     }
 
-    // Fallback: keep the namespace but convert :: to .
     return `${parsed.namespace.replace(/::/g, ".")}.${parsed.baseType}`;
   }
 
-  resolveTemplateTypes(type: string): string {
-    const parsed = cppTypeAnalyzer.parseType(type);
-    if (!parsed || !parsed.templateArgs) {
-      return type; // Not a template
+  private handleSpecialContainers(parsed: ParsedType): string | null {
+    if (!parsed.templateArgs) {
+      return null;
     }
 
-    // Special handling for container types
     if (parsed.baseType === "Array") {
       const innerType = this.cppToTypeScript(parsed.templateArgs[0].fullName);
       return `${innerType}[]`;
@@ -369,8 +342,20 @@ export class TypeConverter {
       const innerType = this.cppToTypeScript(parsed.templateArgs[0].fullName);
       return `Set<${innerType}>`;
     }
+    return null;
+  }
 
-    // Generic template handling
+  resolveTemplateTypes(type: string): string {
+    const parsed = cppTypeAnalyzer.parseType(type);
+    if (!parsed || !parsed.templateArgs) {
+      return type;
+    }
+
+    const containerType = this.handleSpecialContainers(parsed);
+    if (containerType) {
+      return containerType;
+    }
+
     const resolvedArgs = parsed.templateArgs
       .map((arg) => this.cppToTypeScript(arg.fullName))
       .join(", ");
@@ -398,30 +383,22 @@ export class TypeConverter {
   canConvert(cppType: string): boolean {
     const cleanType = this.cleanTypeString(cppType);
 
-    // Check custom rules
     for (const rule of this.registry.getCustomRules()) {
       if (rule.condition(cleanType)) {
         return true;
       }
     }
 
-    // Use the parser to analyze the type
     const parsed = cppTypeAnalyzer.parseType(cleanType);
     if (parsed) {
-      // Check template mappings for template types
       if (parsed.templateArgs) {
         for (const mapping of this.registry.getTemplateMappings()) {
-          const baseTypePattern = mapping.pattern
-            .replace(/^\^|\$$/g, "")
-            .split("<")[0];
-          const regex = new RegExp(`^${baseTypePattern}$`);
-          if (regex.test(parsed.baseType)) {
+          if (this.checkTemplateMapping(parsed, mapping)) {
             return true;
           }
         }
       }
 
-      // Check direct type lookup for base type
       const typeToCheck = parsed.namespace
         ? `${parsed.namespace}::${parsed.baseType}`
         : parsed.baseType;
@@ -432,7 +409,6 @@ export class TypeConverter {
       );
     }
 
-    // Fallback to original logic
     return (
       this.registry.hasType(cleanType) ||
       this.registry.hasType(this.normalizeTypeName(cleanType))
@@ -463,7 +439,6 @@ export class TypeConverter {
   }
 }
 
-// Factory function for creating type system with external configuration
 export async function createTypeSystemFromFile(
   configPath: string
 ): Promise<{ registry: TypeRegistry; converter: TypeConverter }> {
@@ -471,22 +446,18 @@ export async function createTypeSystemFromFile(
     const configText = await Deno.readTextFile(configPath);
     const rawConfig = JSON.parse(configText);
 
-    // Since JSON can't contain functions, we need to handle customRules differently
-    // Extract customRules before validation if they exist
     const { customRules: _customRules, ...configWithoutRules } = rawConfig;
 
-    // Validate the configuration with Zod (excluding customRules which can't be validated as functions from JSON)
     const validatedConfig = validateTypeMappingConfig(configWithoutRules);
     Logger.success(
       `Type mapping configuration validated successfully from ${configPath}`
     );
 
-    // Convert the validated config to the format expected by TypeRegistry
     const typeSystemConfig: TypeMappingConfig = {
       mappings: validatedConfig.mappings as TypeDefinition[],
       templateMappings: validatedConfig.templateMappings || [],
       namespaceMappings: validatedConfig.namespaceMappings || [],
-      customRules: [], // We'll add these separately if they exist in the JSON
+      customRules: [],
     };
 
     const registry = new TypeRegistry(typeSystemConfig);
@@ -499,7 +470,6 @@ export async function createTypeSystemFromFile(
       `Failed to load type configuration from ${configPath}: ${errorMessage}`
     );
 
-    // Provide specific error guidance
     if (errorMessage.includes("version")) {
       Logger.warning(
         "Configuration validation hint: Ensure the configuration has a valid semver version field"
@@ -511,7 +481,6 @@ export async function createTypeSystemFromFile(
       );
     }
 
-    // No fallback to defaults - throw error instead
     throw new Error(
       `Failed to load type configuration from ${configPath}: ${errorMessage}`
     );

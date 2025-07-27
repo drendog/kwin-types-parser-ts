@@ -1,11 +1,10 @@
-
 import { createToken, Lexer, type IToken } from "chevrotain";
 import { Logger } from "../utils/logtape-logger.ts";
 
 // Token definitions for C++ type signatures
 const Identifier = createToken({
   name: "Identifier",
-  pattern: /[a-zA-Z_][a-zA-Z0-9_]*/,
+  pattern: /[a-zA-Z_]\w*/,
 });
 
 const Scope = createToken({
@@ -473,5 +472,4 @@ export class CppTypeAnalyzer {
   }
 }
 
-// Export a singleton instance for convenience
 export const cppTypeAnalyzer = new CppTypeAnalyzer();
