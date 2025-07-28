@@ -1,14 +1,10 @@
 import type { Document, Element } from "deno_dom";
 import { uniqBy, flatMap } from "lodash";
-import type {
-  ParseConfig,
-  ParsedEnum,
-} from "../../core/interfaces.ts";
-import { type ParseStrategy, DOMUtils } from "./base-strategy.ts";
+import type { ParseConfig, ParsedEnum } from "../../core/interfaces.ts";
+import type { ParseStrategy } from "./base-strategy.ts";
+import { DOMUtils } from "../../utils/dom-utils.ts";
 
 export class EnumParseStrategy implements ParseStrategy<ParsedEnum> {
-  constructor() {}
-
   parse(doc: Document, _config: ParseConfig): ParsedEnum[] {
     const enums: ParsedEnum[] = [];
 

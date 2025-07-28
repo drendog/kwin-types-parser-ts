@@ -8,7 +8,8 @@ import type {
   ITypeMapper,
   IConfigurationManager,
 } from "../../core/interfaces.ts";
-import { type ParseStrategy, DOMUtils } from "./base-strategy.ts";
+import type { ParseStrategy } from "./base-strategy.ts";
+import { DOMUtils } from "../../utils/dom-utils.ts";
 
 export class MethodParseStrategy implements ParseStrategy<ParsedMethod> {
   constructor(
@@ -104,42 +105,72 @@ export class MethodParseStrategy implements ParseStrategy<ParsedMethod> {
     };
   }
 
-  private parseParameters(paramStr: string): ParsedParameter[] {
-    if (!paramStr.trim()) return [];
+  private buildNamespaceTypeMap(rightCell: Element): Map<string, string> {
+    const typeMap = new Map<string, string>();
+    const paramLinks = rightCell.querySelectorAll("a.el[href]");
 
-    const paramParts = DOMUtils.splitParameters(paramStr);
+    for (const link of paramLinks) {
+      const linkElement = link as Element;
+      const href = linkElement.getAttribute("href");
+      const linkText = linkElement.textContent?.trim();
 
-    return flatMap(paramParts, (param: string) => {
-      const defaultRegex = /^(.+?)\s*=\s*(.+)$/;
-      const defaultMatch = defaultRegex.exec(param);
-      let paramType = "";
-      let paramName = "";
-      let defaultValue: string | undefined;
+      if (!href || !linkText || !href.startsWith("#")) continue;
 
-      if (defaultMatch) {
-        const [, paramPart, defaultVal] = defaultMatch;
-        defaultValue = defaultVal.trim();
-        const parsed = DOMUtils.parseParameterType(paramPart.trim());
-        paramType = parsed.type;
-        paramName = parsed.name;
-      } else {
-        const parsed = DOMUtils.parseParameterType(param);
-        paramType = parsed.type;
-        paramName = parsed.name;
+      const targetId = href.substring(1);
+      const targetSection = rightCell.ownerDocument?.querySelector(
+        `[id="${targetId}"]`
+      );
+
+      if (!targetSection) continue;
+
+      const namespaceLink =
+        targetSection.parentElement?.querySelector("td.memname a.el");
+      if (!namespaceLink) continue;
+
+      const fullNamespace = namespaceLink.textContent?.trim();
+      if (fullNamespace && fullNamespace.includes("::")) {
+        typeMap.set(linkText, fullNamespace);
       }
+    }
 
-      if (paramType && paramName) {
-        return [
-          {
-            name: paramName,
-            type: this.typeMapper.mapCppTypeToTs(paramType),
-            defaultValue,
-            isOptional: !!defaultValue,
-          },
-        ];
-      }
-      return [];
-    });
+    return typeMap;
+  }
+
+  private parseParameter(
+    param: string,
+    typeMap: Map<string, string>
+  ): ParsedParameter | null {
+    const defaultRegex = /^(.+?)\s*=\s*(.+)$/;
+    const defaultMatch = defaultRegex.exec(param);
+    let paramType = "";
+    let paramName = "";
+    let defaultValue: string | undefined;
+
+    if (defaultMatch) {
+      const [, paramPart, defaultVal] = defaultMatch;
+      defaultValue = defaultVal.trim();
+      const parsed = DOMUtils.parseParameterType(paramPart.trim());
+      paramType = parsed.type;
+      paramName = parsed.name;
+    } else {
+      const parsed = DOMUtils.parseParameterType(param);
+      paramType = parsed.type;
+      paramName = parsed.name;
+    }
+
+    const fullNamespace = typeMap.get(paramType);
+    if (fullNamespace) {
+      paramType = fullNamespace.replace(/::/g, ".");
+    }
+
+    if (!paramType || !paramName) return null;
+
+    return {
+      name: paramName,
+      type: this.typeMapper.mapCppTypeToTs(paramType),
+      defaultValue,
+      isOptional: !!defaultValue,
+    };
   }
 
   private parseParametersFromHTML(
@@ -148,71 +179,11 @@ export class MethodParseStrategy implements ParseStrategy<ParsedMethod> {
   ): ParsedParameter[] {
     if (!paramStr.trim()) return [];
 
-    // Extract full namespaces from links - Doxygen loves to abbreviate
-    const paramLinks = rightCell.querySelectorAll("a.el[href]");
-    const typeMap = new Map<string, string>();
-    for (const link of paramLinks) {
-      const linkElement = link as Element;
-      const href = linkElement.getAttribute("href");
-      const linkText = linkElement.textContent?.trim();
-
-      if (href && linkText && href.startsWith("#")) {
-        const targetId = href.substring(1);
-        const targetSection = rightCell.ownerDocument?.querySelector(
-          `[id="${targetId}"]`
-        );
-
-        if (targetSection) {
-          const namespaceLink =
-            targetSection.parentElement?.querySelector("td.memname a.el");
-          if (namespaceLink) {
-            const fullNamespace = namespaceLink.textContent?.trim();
-            if (fullNamespace && fullNamespace.includes("::")) {
-              typeMap.set(linkText, fullNamespace);
-            }
-          }
-        }
-      }
-    }
-
+    const typeMap = this.buildNamespaceTypeMap(rightCell);
     const paramParts = DOMUtils.splitParameters(paramStr);
 
-    return flatMap(paramParts, (param: string) => {
-      const defaultRegex = /^(.+?)\s*=\s*(.+)$/;
-      const defaultMatch = defaultRegex.exec(param);
-      let paramType = "";
-      let paramName = "";
-      let defaultValue: string | undefined;
-
-      if (defaultMatch) {
-        const [, paramPart, defaultVal] = defaultMatch;
-        defaultValue = defaultVal.trim();
-        const parsed = DOMUtils.parseParameterType(paramPart.trim());
-        paramType = parsed.type;
-        paramName = parsed.name;
-      } else {
-        const parsed = DOMUtils.parseParameterType(param);
-        paramType = parsed.type;
-        paramName = parsed.name;
-      }
-
-      // Swap in full namespace if we have it
-      const fullNamespace = typeMap.get(paramType);
-      if (fullNamespace) {
-        paramType = fullNamespace.replace(/::/g, ".");
-      }
-
-      if (paramType && paramName) {
-        return [
-          {
-            name: paramName,
-            type: this.typeMapper.mapCppTypeToTs(paramType),
-            defaultValue,
-            isOptional: !!defaultValue,
-          },
-        ];
-      }
-      return [];
-    });
+    return paramParts
+      .map((param) => this.parseParameter(param, typeMap))
+      .filter((param): param is ParsedParameter => param !== null);
   }
 }

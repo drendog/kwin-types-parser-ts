@@ -6,7 +6,8 @@ import type {
   ITypeMapper,
   IConfigurationManager,
 } from "../../core/interfaces.ts";
-import { type ParseStrategy, DOMUtils } from "./base-strategy.ts";
+import type { ParseStrategy } from "./base-strategy.ts";
+import { DOMUtils } from "../../utils/dom-utils.ts";
 
 export class PropertyParseStrategy implements ParseStrategy<ParsedProperty> {
   constructor(
